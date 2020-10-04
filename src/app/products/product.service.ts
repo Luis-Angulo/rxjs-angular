@@ -6,17 +6,15 @@ import {
   combineLatest,
   merge,
   Observable,
-  of,
   Subject,
   throwError,
 } from 'rxjs';
-import { catchError, map, scan, tap } from 'rxjs/operators';
+import { catchError, map, scan, shareReplay, tap } from 'rxjs/operators';
 
 import { Product } from './product';
 import { Supplier } from '../suppliers/supplier';
 import { SupplierService } from '../suppliers/supplier.service';
 import { ProductCategoryService } from '../product-categories/product-category.service';
-import { ProductCategory } from '../product-categories/product-category';
 
 @Injectable({
   providedIn: 'root',
@@ -32,20 +30,16 @@ export class ProductService {
     this.products$,
     this.productCategoryService.productCategories$,
   ]).pipe(
+    tap((data) => console.log('products', JSON.stringify(data))),
     map(([products, categories]) =>
-      // emit a mapped array of products
-      products.map(
-        (product: Product) =>
-          ({
-            ...product,
-            price: product.price * 1.5,
-            category: categories.find(
-              (cat: ProductCategory) => product.categoryId === cat.id
-            ).name,
-            searchKey: [product.productName],
-          } as Product)
-      )
-    )
+      products.map(p => ({
+            ...p,
+            price: p.price * 1.5,
+            category: categories.find(cat => p.categoryId === cat.id).name,
+            searchKey: [p.productName],
+          } as Product))
+    ),
+    shareReplay(1) // Cached emission
   );
 
   private productSelectedSubject = new BehaviorSubject<number>(0);
@@ -55,7 +49,8 @@ export class ProductService {
     this.productsWithCategory$,
     this.productSelectedAction$,
   ]).pipe(
-    map(([products, productId]) => products.find((p) => p.id === productId))
+    map(([products, productId]) => products.find((p) => p.id === productId)),
+    shareReplay(1) // Cached emission
   );
 
   private productInsertedSubject = new Subject<Product>();
