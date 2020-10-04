@@ -15,9 +15,8 @@ export class ProductListComponent {
   categories;
 
   // declarative style
-  products$ = this.productService.products$.pipe(
+  products$ = this.productService.productsWithCategory$.pipe(
     catchError((err) => {
-      // this.errorMessage = err; // onPush will not notice this change
       return EMPTY;
     })
   );
