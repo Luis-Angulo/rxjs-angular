@@ -1,7 +1,8 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 
 import { EMPTY } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { catchError, map, tap } from 'rxjs/operators';
+import { Product } from './product';
 import { ProductService } from './product.service';
 
 @Component({
@@ -13,6 +14,19 @@ export class ProductListComponent {
   pageTitle = 'Product List';
   errorMessage = '';
   categories;
+  selectedCategoryId = 1;
+
+  productsSimpleFilter$ = this.productService.productsWithCategory$.pipe(
+    map((products: Product[]) =>
+      products.filter((p) =>
+        // if there's no id to filterBy, return every product
+        this.selectedCategoryId
+          ? p.categoryId === this.selectedCategoryId
+          : true
+      )
+    ),
+    tap(console.log)
+  );
 
   // declarative style
   products$ = this.productService.productsWithCategory$.pipe(
