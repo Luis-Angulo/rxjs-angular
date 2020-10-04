@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 
-import { EMPTY } from 'rxjs';
+import { BehaviorSubject, combineLatest, EMPTY, Subject } from 'rxjs';
 import { catchError, map, tap } from 'rxjs/operators';
 import { ProductCategoryService } from '../product-categories/product-category.service';
 import { Product } from './product';
@@ -14,23 +14,22 @@ import { ProductService } from './product.service';
 export class ProductListComponent {
   pageTitle = 'Product List';
   errorMessage = '';
-  categories;
-  selectedCategoryId = 1;
 
-  productsSimpleFilter$ = this.productService.productsWithCategory$.pipe(
-    map((products: Product[]) =>
-      products.filter((p) =>
-        // if there's no id to filterBy, return every product
-        this.selectedCategoryId
-          ? p.categoryId === this.selectedCategoryId
-          : true
-      )
-    ),
-    tap(console.log)
-  );
+  private categorySelectedSubject = new BehaviorSubject<number>(0);
+  // private categorySelectedSubject = new Subject<number>();  // this would not emit anything at first
+  categorySelectedAction$ = this.categorySelectedSubject.asObservable();
 
   // declarative style
-  products$ = this.productService.productsWithCategory$.pipe(
+  products$ = combineLatest([
+    this.productService.productsWithCategory$,
+    this.categorySelectedAction$,
+  ]).pipe(
+    map(([products, selectedCategoryId]) =>
+      // return all if no catId, else filter by it
+      products.filter((p: Product) =>
+        selectedCategoryId ? p.categoryId === selectedCategoryId : true
+      )
+    ),
     catchError((err) => {
       this.errorMessage = err;
       return EMPTY;
@@ -54,6 +53,6 @@ export class ProductListComponent {
   }
 
   onSelected(categoryId: string): void {
-    this.selectedCategoryId = +categoryId;
+    this.categorySelectedSubject.next(+categoryId);
   }
 }
