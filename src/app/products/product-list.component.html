@@ -10,7 +10,8 @@
           <select class="form-control"
                   (change)="onSelected($event.target.value)">
             <option value="0">- Display All -</option>
-            <option *ngFor="let category of categories"
+            <!-- We don't need "as" for aliasing because categories is not used elsewhere -->
+            <option *ngFor="let category of categories$ | async"
                     [value]="category.id">{{ category.name }}</option>
           </select>
         </div>
