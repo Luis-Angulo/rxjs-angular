@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 
-import { combineLatest, Observable, throwError } from 'rxjs';
+import { combineLatest, Observable, of, throwError } from 'rxjs';
 import { catchError, map, tap } from 'rxjs/operators';
 
 import { Product } from './product';
@@ -16,33 +16,32 @@ import { ProductCategory } from '../product-categories/product-category';
 export class ProductService {
   private productsUrl = 'api/products';
   private suppliersUrl = this.supplierService.suppliersUrl;
-  // declarative style, this is a stream now
   products$ = this.http
-    .get<Product[]>(this.productsUrl) // casting, not mapping
-    .pipe(
-      catchError(this.handleError)
-    );
-  // the deprecation warning means you must first combine then pipe on the resulting
-  // observable, you can no longer add a function to process the emit of combineLatest here
-  // you have to pipe the observable afterwards if you want to work it
+    .get<Product[]>(this.productsUrl)
+    .pipe(catchError(this.handleError));
+
   productsWithCategory$: Observable<Product[]> = combineLatest([
-    // emit both as a single event when ready
     this.products$,
     this.productCategoryService.productCategories$,
   ]).pipe(
-    // destructure both arrays and map them together
     map(([products, categories]) =>
       // emit a mapped array of products
-      products.map((product: Product) => ({
-        ...product,
-        price: product.price * 1.5,
-        category: categories.find(
-          (cat: ProductCategory) => product.categoryId === cat.id
-        ).name,
-        searchKey: [product.productName],
-      }) as Product)
-    ),
-    tap(console.log)
+      products.map(
+        (product: Product) =>
+          ({
+            ...product,
+            price: product.price * 1.5,
+            category: categories.find(
+              (cat: ProductCategory) => product.categoryId === cat.id
+            ).name,
+            searchKey: [product.productName],
+          } as Product)
+      )
+    )
+  );
+
+  selectedProduct$ = this.productsWithCategory$.pipe(
+    map((p: Product[]) => p.find((c) => c.categoryId === 5))
   );
 
   constructor(
@@ -59,21 +58,15 @@ export class ProductService {
       description: 'Our new product',
       price: 8.9,
       categoryId: 3,
-      // category: 'Toolbox',
       quantityInStock: 30,
     };
   }
 
   private handleError(err: any): Observable<never> {
-    // in a real world app, we may send the server to some remote logging infrastructure
-    // instead of just logging it to the console
     let errorMessage: string;
     if (err.error instanceof ErrorEvent) {
-      // A client-side or network error occurred. Handle it accordingly.
       errorMessage = `An error occurred: ${err.error.message}`;
     } else {
-      // The backend returned an unsuccessful response code.
-      // The response body may contain clues as to what went wrong,
       errorMessage = `Backend returned code ${err.status}: ${err.body.error}`;
     }
     console.error(err);
