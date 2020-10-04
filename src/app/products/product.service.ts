@@ -1,12 +1,14 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 
-import { Observable, throwError } from 'rxjs';
+import { combineLatest, Observable, throwError } from 'rxjs';
 import { catchError, map, tap } from 'rxjs/operators';
 
 import { Product } from './product';
 import { Supplier } from '../suppliers/supplier';
 import { SupplierService } from '../suppliers/supplier.service';
+import { ProductCategoryService } from '../product-categories/product-category.service';
+import { ProductCategory } from '../product-categories/product-category';
 
 @Injectable({
   providedIn: 'root',
@@ -18,22 +20,35 @@ export class ProductService {
   products$ = this.http
     .get<Product[]>(this.productsUrl) // casting, not mapping
     .pipe(
-      tap((data) => console.log('Products: ', JSON.stringify(data))),
-      map((products: Product[]) =>
-        // mapping individual products
-        products.map((p) => ({
-          // return obj, the parenthesis specify this is not a function body
-          ...p,
-          price: p.price * 1.5,
-          searchKey: [p.productName],
-        }))
-      ),
       catchError(this.handleError)
     );
+  // the deprecation warning means you must first combine then pipe on the resulting
+  // observable, you can no longer add a function to process the emit of combineLatest here
+  // you have to pipe the observable afterwards if you want to work it
+  productsWithCategory$: Observable<Product[]> = combineLatest([
+    // emit both as a single event when ready
+    this.products$,
+    this.productCategoryService.productCategories$,
+  ]).pipe(
+    // destructure both arrays and map them together
+    map(([products, categories]) =>
+      // emit a mapped array of products
+      products.map((product: Product) => ({
+        ...product,
+        price: product.price * 1.5,
+        category: categories.find(
+          (cat: ProductCategory) => product.categoryId === cat.id
+        ).name,
+        searchKey: [product.productName],
+      }) as Product)
+    ),
+    tap(console.log)
+  );
 
   constructor(
     private http: HttpClient,
-    private supplierService: SupplierService
+    private supplierService: SupplierService,
+    private productCategoryService: ProductCategoryService
   ) {}
 
   private fakeProduct(): Product {

@@ -9,6 +9,7 @@ import { ProductService } from '../product.service';
 export class ProductDetailComponent {
   pageTitle = 'Product Detail';
   errorMessage = '';
+  productSuppliers = null;  // no idea why it suddenly started asking for this
   product;
 
   constructor(private productService: ProductService) { }
