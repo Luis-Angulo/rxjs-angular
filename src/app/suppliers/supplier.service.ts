@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 
 import { throwError, Observable, of } from 'rxjs';
-import { concatMap, map, mergeMap, tap } from 'rxjs/operators';
+import { concatMap, map, mergeMap, switchMap, tap } from 'rxjs/operators';
 import { Supplier } from './supplier';
 
 // This isn't used in the GUI, it's just here to show different higher order mapping operators
@@ -30,12 +30,29 @@ export class SupplierService {
     mergeMap((id) => this.http.get<Supplier>(`${this.suppliersUrl}/${id}`))
   );
 
+  // higher order observable
+  suppliersWithSwitchMap$ = of(1, 5, 8).pipe(
+    tap((id) => console.log('switchmap source', id)),
+    switchMap((id) => this.http.get<Supplier>(`${this.suppliersUrl}/${id}`))
+  );
+
   constructor(private http: HttpClient) {
     // this.suppliersWithMap$.subscribe((o) => o.subscribe(console.log));  // requires sub to dig to obs
     // This is sequential, it'll take longer to be done
-    this.suppliersWithConcatMap$.subscribe((item) => console.log(item)); // does not require another sub
+    // higher order obs dont require drilling down to the inner obs
+    /*
+    this.suppliersWithConcatMap$.subscribe((item) =>
+      console.log('concatMap', item)
+    );
     // this is parallel, it will finish ASAP BUT not necessarily in order
-    this.suppliersWithMergeMap$.subscribe((item) => console.log(item)); // does not require another sub
+    this.suppliersWithMergeMap$.subscribe((item) =>
+      console.log('mergeMap', item)
+    );
+    // this will only get the LAST emission
+    this.suppliersWithSwitchMap$.subscribe((item) =>
+      console.log('switchMap', item)
+    );
+    */
   }
 
   private handleError(err: any): Observable<never> {
