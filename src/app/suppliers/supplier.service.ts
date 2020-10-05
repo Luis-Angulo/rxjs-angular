@@ -2,8 +2,10 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 
 import { throwError, Observable, of } from 'rxjs';
-import { concatMap, map, tap } from 'rxjs/operators';
+import { concatMap, map, mergeMap, tap } from 'rxjs/operators';
 import { Supplier } from './supplier';
+
+// This isn't used in the GUI, it's just here to show different higher order mapping operators
 
 @Injectable({
   providedIn: 'root',
@@ -22,9 +24,18 @@ export class SupplierService {
     concatMap((id) => this.http.get<Supplier>(`${this.suppliersUrl}/${id}`))
   );
 
+  // higher order observable
+  suppliersWithMergeMap$ = of(1, 5, 8).pipe(
+    tap((id) => console.log('mergemap source', id)),
+    mergeMap((id) => this.http.get<Supplier>(`${this.suppliersUrl}/${id}`))
+  );
+
   constructor(private http: HttpClient) {
     // this.suppliersWithMap$.subscribe((o) => o.subscribe(console.log));  // requires sub to dig to obs
+    // This is sequential, it'll take longer to be done
     this.suppliersWithConcatMap$.subscribe((item) => console.log(item)); // does not require another sub
+    // this is parallel, it will finish ASAP BUT not necessarily in order
+    this.suppliersWithMergeMap$.subscribe((item) => console.log(item)); // does not require another sub
   }
 
   private handleError(err: any): Observable<never> {
