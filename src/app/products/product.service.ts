@@ -53,6 +53,15 @@ export class ProductService {
     shareReplay(1) // Cached emission
   );
 
+  selectedProductSuppliers$ = combineLatest([
+    this.selectedProduct$,
+    this.supplierService.suppliers$
+  ]).pipe(
+    map(([selectedProduct, suppliers]) =>
+    suppliers.filter(s => selectedProduct.supplierIds.includes(s.id))
+    )
+  );
+
   private productInsertedSubject = new Subject<Product>();
   productInsertedAction$ = this.productInsertedSubject.asObservable();
 
