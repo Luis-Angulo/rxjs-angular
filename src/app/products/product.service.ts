@@ -4,12 +4,13 @@ import { HttpClient } from '@angular/common/http';
 import {
   BehaviorSubject,
   combineLatest,
+  from,
   merge,
   Observable,
   Subject,
   throwError,
 } from 'rxjs';
-import { catchError, map, scan, shareReplay, tap } from 'rxjs/operators';
+import { catchError, filter, map, mergeMap, scan, shareReplay, switchMap, tap, toArray } from 'rxjs/operators';
 
 import { Product } from './product';
 import { Supplier } from '../suppliers/supplier';
@@ -52,6 +53,17 @@ export class ProductService {
     map(([products, productId]) => products.find((p) => p.id === productId)),
     shareReplay(1) // Cached emission
   );
+
+  selectedProductSuppliers$ = this.selectedProduct$.pipe(
+    filter(product => !!product),  // skip if the product is falsy
+    // mergeMap(product => from(product.supplierIds)  // would cause the wrong data to render if the user clicks fast on many menu items
+    switchMap(product => from(product.supplierIds)  // ignore all events but latest
+    .pipe(
+      mergeMap(supplierId => this.http.get<Supplier>(`${this.suppliersUrl}/${supplierId}`)),
+      toArray(), // waits for all observables to finish
+      tap(val => console.log('sps value', val))
+    )
+  ));
 
   private productInsertedSubject = new Subject<Product>();
   productInsertedAction$ = this.productInsertedSubject.asObservable();
