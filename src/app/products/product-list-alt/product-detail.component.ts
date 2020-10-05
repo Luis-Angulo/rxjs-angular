@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { EMPTY, Subject } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { catchError, map } from 'rxjs/operators';
+import { Product } from '../product';
 
 import { ProductService } from '../product.service';
 
@@ -9,7 +10,6 @@ import { ProductService } from '../product.service';
   templateUrl: './product-detail.component.html',
 })
 export class ProductDetailComponent {
-  pageTitle = 'Product Detail';
   private errorMessageSubject = new Subject<string>();
   errorMessage$ = this.errorMessageSubject.asObservable();
   product$ = this.productService.selectedProduct$.pipe(
@@ -17,6 +17,11 @@ export class ProductDetailComponent {
       this.errorMessageSubject.next(err);
       return EMPTY;
     })
+  );
+  // tapping into streams can be more efficient than making requests and simpler than trying to
+  // tie everything imperatively (streams are declarative, giving every instruction in order is imperative)
+  pageTitle$ = this.product$.pipe(
+    map((p: Product) => p ? `${p.productName} details`: null)
   );
 
   productSuppliers$ = this.productService.selectedProductSuppliers$.pipe(
